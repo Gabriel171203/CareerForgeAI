@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import 'home_screen.dart';
+
 class MainDashboardScreen extends StatefulWidget {
   const MainDashboardScreen({super.key});
 
@@ -11,17 +13,19 @@ class MainDashboardScreen extends StatefulWidget {
 class _MainDashboardScreenState extends State<MainDashboardScreen> {
   int _currentIndex = 0;
 
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const Center(child: Text('Analytics')),
+    const Center(child: Text('AI Assistant')),
+    const Center(child: Text('Profile')),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          IconButton(onPressed: () {}, icon: const Icon(LucideIcons.bell)),
-        ],
-      ),
-      body: const Center(
-        child: Text('Career Dashboard Metrics Here'),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -29,7 +33,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
         destinations: const [
           NavigationDestination(icon: Icon(LucideIcons.layoutDashboard), label: 'Home'),
           NavigationDestination(icon: Icon(LucideIcons.crosshair), label: 'Analytics'),
-          NavigationDestination(icon: Icon(LucideIcons.bot), label: 'AI Assistant'),
+          NavigationDestination(icon: Icon(LucideIcons.bot), label: 'Assistant'),
           NavigationDestination(icon: Icon(LucideIcons.user), label: 'Profile'),
         ],
       ),
