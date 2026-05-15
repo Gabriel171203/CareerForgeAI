@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "170908677159",
+    "project_id": "careerforgeai-a4719",
+    "storage_bucket": "careerforgeai-a4719.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:170908677159:android:c38ece1e7f76c51d9a0a02",
+        "android_client_info": {
+          "package_name": "com.gabrach.careerforge.career_forge_ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiwT-QLVNXMXMQyBrCM-vhFn2BsnajbE0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
