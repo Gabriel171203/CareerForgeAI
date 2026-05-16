@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import '../../../../services/ai/gemini_service.dart';
-import '../../../../shared/widgets/glass_card.dart';
+import '../../../../../services/ai/gemini_service.dart';
+import '../../../../../services/auth/firebase_auth_service.dart';
+import '../../../../../services/database/career_repository.dart';
+import '../../../../../core/models/career_profile.dart';
+import '../../../../../shared/widgets/glass_card.dart';
 
 class QuestionnaireScreen extends ConsumerStatefulWidget {
   const QuestionnaireScreen({super.key});
@@ -27,6 +30,9 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
     setState(() => _isAnalyzing = true);
     
     final gemini = ref.read(geminiServiceProvider);
+    final auth = ref.read(authStateProvider).value;
+    final careerRepo = ref.read(careerRepositoryProvider);
+    
     final skills = _skillsController.text.split(',').map((e) => e.trim()).toList();
     
     final result = await gemini.analyzeCareerProfile(
@@ -34,6 +40,20 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
       interest: _interestController.text,
       experience: _experienceLevel,
     );
+    
+    if (result != null && auth != null) {
+      final profile = CareerProfile(
+        userId: auth.uid,
+        interest: _interestController.text.trim(),
+        skills: skills,
+        experienceLevel: _experienceLevel,
+        aiFeedback: result,
+        readinessScore: 65, // Base score, can be dynamic later
+        updatedAt: DateTime.now(),
+      );
+      
+      await careerRepo.saveProfile(profile);
+    }
     
     if (mounted) {
       setState(() {
@@ -135,7 +155,7 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
           const SizedBox(height: 24),
           
           DropdownButtonFormField<String>(
-            value: _experienceLevel,
+            initialValue: _experienceLevel,
             decoration: const InputDecoration(
               labelText: 'Experience Level',
               prefixIcon: Icon(LucideIcons.briefcase),
@@ -172,40 +192,66 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
   }
 
   Widget _buildResult(BuildContext context) {
+    final theme = Theme.of(context);
     return SingleChildScrollView(
       key: const ValueKey('result'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(LucideIcons.sparkles, size: 64, color: Theme.of(context).colorScheme.secondary)
-            .animate().scale().shimmer(duration: 2.seconds),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(LucideIcons.sparkles, size: 48, color: theme.colorScheme.primary),
+          ).animate().scale(duration: 600.ms, curve: Curves.easeOutBack),
           const SizedBox(height: 24),
           Text(
             'Your AI Career Profile',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ).animate().fade().slideY(),
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ).animate().fadeIn(delay: 200.ms),
           const SizedBox(height: 32),
-          
           GlassCard(
-            blur: 15,
             padding: const EdgeInsets.all(24),
-            child: Text(
-              _aiFeedback ?? 'Analysis failed.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(LucideIcons.bot, size: 20, color: theme.colorScheme.secondary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'AI ANALYSIS',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.secondary,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _aiFeedback ?? 'Analysis failed.',
+                  style: const TextStyle(height: 1.6, fontSize: 15),
+                ),
+              ],
             ),
-          ).animate().fade().scale(delay: 300.ms),
-          
+          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.1, end: 0),
           const SizedBox(height: 48),
-          FilledButton(
-            onPressed: () => context.go('/dashboard'),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text('Go to my Dashboard'),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => context.go('/dashboard'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text('Go to my Dashboard'),
             ),
-          ).animate().fade(delay: 500.ms),
+          ).animate().fadeIn(delay: 600.ms),
         ],
       ),
     );

@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-import '../../../../services/auth/firebase_auth_service.dart';
-import '../../../../shared/widgets/glass_card.dart';
+import '../../../../../services/auth/firebase_auth_service.dart';
+import '../../../../../shared/widgets/glass_card.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +17,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
 
@@ -24,6 +25,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Email dan kata sandi tidak boleh kosong')),
+      );
+      return;
+    }
+
+    if (!_isLogin && _nameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nama lengkap tidak boleh kosong')),
       );
       return;
     }
@@ -36,7 +44,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _emailController.text.trim(), _passwordController.text.trim());
       } else {
         await authService.signUpWithEmailPassword(
-            _emailController.text.trim(), _passwordController.text.trim());
+          email: _emailController.text.trim(), 
+          password: _passwordController.text.trim(),
+          displayName: _nameController.text.trim(),
+        );
       }
       
       if (mounted) context.go('/dashboard');
@@ -116,6 +127,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ).animate().fade().slideY(),
                       const SizedBox(height: 32),
                       
+                      if (!_isLogin) 
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: TextFormField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(LucideIcons.user),
+                              labelText: 'Full Name',
+                            ),
+                          ),
+                        ).animate().fade().slideX(),
+                      
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
@@ -151,8 +174,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           setState(() => _isLogin = !_isLogin);
                         },
                         child: Text(_isLogin 
-                          ? 'Don\\'t have an account? Sign Up' 
-                          : 'Already have an account? Login'),
+                          ? "Don't have an account? Sign Up" 
+                          : "Already have an account? Login"),
                       ),
                     ],
                   ),

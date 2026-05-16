@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,7 +21,14 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _navigateToNext() async {
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
-      context.go('/welcome');
+      final prefs = await SharedPreferences.getInstance();
+      final hasLocale = prefs.containsKey('selected_locale');
+      
+      if (hasLocale) {
+        context.go('/welcome');
+      } else {
+        context.go('/language');
+      }
     }
   }
 

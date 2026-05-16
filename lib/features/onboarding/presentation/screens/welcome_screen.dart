@@ -105,6 +105,25 @@ class WelcomeScreen extends StatelessWidget {
                 ),
                 child: const Text('I already have an account'),
               ).animate().fade(delay: 1000.ms).slideY(begin: 0.3, end: 0),
+              
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    LucideIcons.info, 
+                    size: 14, 
+                    color: colorScheme.onSurface.withOpacity(0.5)
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Login diperlukan untuk menyimpan analisis AI Anda',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurface.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ).animate().fade(delay: 1200.ms),
             ],
           ),
         ),

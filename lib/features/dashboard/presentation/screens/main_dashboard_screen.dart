@@ -1,35 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-
 import 'home_screen.dart';
+import 'analytics_screen.dart';
+import '../../../mock_interview/presentation/screens/mock_interview_screen.dart';
+import 'profile_screen.dart';
 
-class MainDashboardScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/dashboard_providers.dart';
+
+class MainDashboardScreen extends ConsumerWidget {
   const MainDashboardScreen({super.key});
 
-  @override
-  State<MainDashboardScreen> createState() => _MainDashboardScreenState();
-}
-
-class _MainDashboardScreenState extends State<MainDashboardScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const Center(child: Text('Analytics')),
-    const Center(child: Text('AI Assistant')),
-    const Center(child: Text('Profile')),
+  final List<Widget> _screens = const [
+    HomeScreen(),
+    AnalyticsScreen(),
+    MockInterviewScreen(),
+    ProfileScreen(),
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentIndex = ref.watch(dashboardIndexProvider);
+    
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (idx) => setState(() => _currentIndex = idx),
+        selectedIndex: currentIndex,
+        onDestinationSelected: (idx) => ref.read(dashboardIndexProvider.notifier).state = idx,
         destinations: const [
           NavigationDestination(icon: Icon(LucideIcons.layoutDashboard), label: 'Home'),
           NavigationDestination(icon: Icon(LucideIcons.crosshair), label: 'Analytics'),
