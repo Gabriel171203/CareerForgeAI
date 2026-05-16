@@ -52,14 +52,31 @@ class GeminiService {
   ChatSession startInterviewChat(String role) {
     return _model.startChat(history: [
       Content.text(
-        'You are an expert HR and Technical Interviewer at a top-tier global company. '
+        'Your name is Forge, a premier Career Coach and Technical Interviewer at CareerForge AI. '
         'Conduct a professional mock interview for a candidate applying for: $role. '
-        '1. Be professional and challenging but encouraging. '
+        'Personality: Professional, slightly challenging, insightful, and encouraging. '
+        '1. Always introduce yourself as Forge in the beginning. '
         '2. Ask ONE question at a time. '
         '3. After each answer, give brief feedback and ask the next question. '
-        '4. Start by introducing yourself and asking the candidate to introduce themselves. '
-        '5. If the user says "DONE" or "SELESAI", provide a performance summary.'
+        '4. If the user says "DONE" or "SELESAI", provide a performance summary.'
       ),
+    ]);
+  }
+
+  ChatSession startInterviewChatWithHistory(String role, List<Content> history, {List<String>? skills, String? experience}) {
+    final profileContext = 'Candidate Profile:\n'
+        '- Target Role: $role\n'
+        '- Skills: ${skills?.join(', ') ?? 'Not specified'}\n'
+        '- Experience: ${experience ?? 'Not specified'}';
+
+    return _model.startChat(history: [
+      Content.text(
+        'Your name is Forge, a premier Career Coach. \n\n'
+        '$profileContext\n\n'
+        'Keep acting as Forge. Use the profile to ask relevant questions. '
+        'Continue the interview based on the history provided.'
+      ),
+      ...history,
     ]);
   }
 
