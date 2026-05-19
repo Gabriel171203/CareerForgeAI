@@ -34,15 +34,14 @@ class AnalyticsScreen extends ConsumerWidget {
             );
           }
 
-          // Simulated distribution for radar chart
-          final labels = ['Technical', 'Soft Skills', 'Exp', 'Culture', 'Leadership'];
-          final values = [
-            (profile.skills.length * 2.0).clamp(1.0, 10.0), // Technical
-            7.0, // Simulated soft skills
-            profile.experienceLevel == 'Junior (1-2 years)' ? 5.0 : 2.0, // Experience
-            6.0, // Culture
-            4.0, // Leadership
-          ];
+          // Use real data from Firestore
+          final labels = profile.analytics.keys.toList();
+          final values = profile.analytics.values.toList();
+          
+          if (labels.isEmpty) {
+            return const Center(child: Text('No analytics data yet. Complete an interview!'));
+          }
+
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
@@ -67,22 +66,29 @@ class AnalyticsScreen extends ConsumerWidget {
                 
                 const SizedBox(height: 32),
                 Text(
-                  'Insights for Your Skills',
+                  'Your Key Strengths',
                   style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ).animate().fade(delay: 200.ms),
                 const SizedBox(height: 16),
                 
-                ...profile.skills.map((skill) => _buildSkillItem(context, skill, 0.9)),
+                // Show highest scoring categories as strengths
+                ...profile.analytics.entries
+                    .where((e) => e.value >= 7.0 || e.value == profile.analytics.values.reduce((a, b) => a > b ? a : b))
+                    .take(2)
+                    .map((e) => _buildSkillItem(context, e.key, e.value / 10.0)),
                 
                 const SizedBox(height: 24),
                 Text(
-                  'Recommended to Learn',
+                  'Forge AI Recommendation',
                   style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ).animate().fade(delay: 400.ms),
                 const SizedBox(height: 16),
                 
-                _buildSkillItem(context, 'Advanced ${profile.interest} Patterns', 0.1, isMissing: true),
-                _buildSkillItem(context, 'System Architecture', 0.3, isMissing: true),
+                if (profile.recommendations.isEmpty)
+                  const Text('Finish an interview to get steps to improve!'),
+
+                ...profile.recommendations.map((rec) => _buildSkillItem(context, rec, 0.3, isMissing: true)),
+
               ],
             ),
           );

@@ -49,6 +49,14 @@ class _QuestionnaireScreenState extends ConsumerState<QuestionnaireScreen> {
         experienceLevel: _experienceLevel,
         aiFeedback: result,
         readinessScore: 65, // Base score, can be dynamic later
+        analytics: const {
+          'Technical': 0.0,
+          'Soft Skills': 0.0,
+          'Experience': 0.0,
+          'Culture': 0.0,
+          'Leadership': 0.0,
+        },
+        recommendations: const [],
         updatedAt: DateTime.now(),
       );
       

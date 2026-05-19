@@ -10,6 +10,7 @@ import '../../../../../shared/widgets/glass_card.dart';
 import '../providers/dashboard_providers.dart';
 
 import '../widgets/career_score_card.dart';
+import '../widgets/ai_insight_card.dart';
 import '../widgets/recommendation_feed.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -51,15 +52,21 @@ class HomeScreen extends ConsumerWidget {
               
               const SizedBox(height: 32),
               
-              // Recommendations Section
+              // NEW AI Insight Section
               _buildSectionHeader(
                 context, 
-                'Daily AI Insights', 
+                'Latest Forge Analysis', 
                 emoji: '✨',
-                onSeeAll: () => ref.read(dashboardIndexProvider.notifier).state = 2, // Go to Assistant
+                onSeeAll: () => ref.read(dashboardIndexProvider.notifier).state = 2, 
               ),
               const SizedBox(height: 16),
-              const RecommendationFeed(),
+              AIInsightCard(
+                insight: userProfile.aiFeedback.isNotEmpty 
+                    ? userProfile.aiFeedback 
+                    : "Belum ada analisis. Mulai interview pertama Anda dengan Forge untuk mendapatkan feedback!",
+                date: DateFormat('MMM d, yyyy').format(userProfile.updatedAt),
+              ),
+
               
               const SizedBox(height: 32),
               
@@ -169,6 +176,7 @@ class HomeScreen extends ConsumerWidget {
             'Personalize Your AI',
             style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
+
           const SizedBox(height: 8),
           const Text(
             'Complete your career profile to unlock personalized AI insights and skill analysis.',
@@ -193,7 +201,7 @@ class HomeScreen extends ConsumerWidget {
      .shimmer(delay: 2.seconds, duration: 1.5.seconds);
   }
 
-  Widget _buildSkillChips(BuildContext context, List<String> skills) {
+  Widget  _buildSkillChips(BuildContext context, List<String> skills) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,

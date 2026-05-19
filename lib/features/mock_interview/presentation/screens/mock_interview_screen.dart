@@ -9,6 +9,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../../services/ai/gemini_service.dart';
 import '../../../../../services/database/career_repository.dart';
 import '../../../../../services/auth/firebase_auth_service.dart';
+import '../../../../../core/models/career_profile.dart';
+
 
 class MockInterviewScreen extends ConsumerStatefulWidget {
   const MockInterviewScreen({super.key});
@@ -24,7 +26,7 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
   String _currentSessionId = '';
 
   @override
-  void initState() {
+  void initState( ) {
     super.initState();
     Future.microtask(() => _initializeSessions());
   }
@@ -140,10 +142,38 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
     await ref.read(careerRepositoryProvider).saveMessage(userId, _currentSessionId, text: response, isUser: false);
     await ref.read(careerRepositoryProvider).markSessionAsFinished(userId, _currentSessionId);
     
+    // Perform deep analysis for the analytics dashboard
+    final history = await ref.read(careerRepositoryProvider).getMessagesStream(userId, _currentSessionId).first;
+    final analysis = await gemini.analyzeInterviewPerformance(history);
+    
+    final currentProfile = ref.read(userProfileProvider).value;
+    if (currentProfile != null) {
+      final scores = Map<String, double>.from(analysis['scores'] ?? currentProfile.analytics);
+      final recommendations = await gemini.getCareerRecommendations(scores, currentProfile.interest);
+
+      final updatedProfile = CareerProfile(
+        userId: currentProfile.userId,
+        interest: currentProfile.interest,
+        skills: currentProfile.skills,
+        experienceLevel: currentProfile.experienceLevel,
+        aiFeedback: analysis['feedback'] ?? response,
+        readinessScore: analysis['readinessScore'] ?? currentProfile.readinessScore,
+        analytics: scores,
+        recommendations: recommendations,
+        updatedAt: DateTime.now(),
+      );
+      await ref.read(careerRepositoryProvider).saveProfile(updatedProfile);
+    }
+
+
     if (mounted) {
       setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Interview analysis completed! Check your Dashboard.')),
+      );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

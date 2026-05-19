@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
@@ -7,7 +8,7 @@ final geminiServiceProvider = Provider<GeminiService>((ref) {
   return GeminiService(apiKey: apiKey);
 });
 
-class GeminiService {
+class GeminiService   {
   final GenerativeModel _model;
   final String _apiKey;
 
@@ -90,7 +91,91 @@ class GeminiService {
       return response.text ?? 'Tidak ada respons.';
     } catch (e) {
       print("Gemini Error: $e");
-      return "Gagal mengirim pesan: $e";
+      return "Error: $e";
+    }
+
+  }
+
+  Future<Map<String, dynamic>> analyzeInterviewPerformance(List<Map<String, dynamic>> history) async {
+    if (_apiKey.isEmpty) {
+      return {
+        'scores': {'Technical': 7.5, 'Soft Skills': 8.0, 'Experience': 6.5, 'Culture': 7.0, 'Leadership': 5.0},
+        'readinessScore': 68,
+        'feedback': "Bagus! Terus tingkatkan kemampuan teknis Anda.",
+      };
+    }
+
+    final chatContext = history.map((m) => "${m['isUser'] ? 'User' : 'Forge'}: ${m['text']}").join('\n');
+    
+    final prompt = '''
+    Analisis transkrip interview berikut dan berikan evaluasi mendalam:
+    \n$chatContext\n
+    
+    Berikan respons dalam format JSON murni:
+    {
+      "scores": {
+        "Technical": (skor 0-10),
+        "Soft Skills": (skor 0-10),
+        "Experience": (skor 0-10),
+        "Culture": (skor 0-10),
+        "Leadership": (skor 0-10)
+      },
+      "readinessScore": (rata-rata skor keseluruhan 0-100),
+      "feedback": "Penjelasan singkat tentang performa dan saran perbaikan"
+    }
+    ''';
+
+    try {
+      final response = await _model.generateContent([Content.text(prompt)]);
+      final text = response.text ?? '{}';
+      // Basic JSON cleaning if Gemini adds markdown blocks
+      final cleanJson = text.replaceAll('```json', '').replaceAll('```', '').trim();
+      
+      final Map<String, dynamic> data = jsonDecode(cleanJson);
+      return data;
+    } catch (e) {
+      print("Analysis Error: $e");
+      return {
+        'scores': {'Technical': 5.0, 'Soft Skills': 5.0, 'Experience': 5.0, 'Culture': 5.0, 'Leadership': 5.0},
+        'readinessScore': 50,
+        'feedback': "Gagal menganalisis: $e",
+      };
+    }
+  }
+
+  Future<List<String>> getCareerRecommendations(Map<String, double> scores, String interest) async {
+
+    if (_apiKey.isEmpty) {
+      return [
+        "Selesaikan project dengan Flutter & Riverpod",
+        "Latih komunikasi publik untuk Soft Skill",
+        "Pelajari System Design untuk peran $interest",
+      ];
+    }
+
+    final gaps = scores.entries.where((e) => e.value < 7.0).map((e) => e.key).join(', ');
+    
+    final prompt = '''
+    Berdasarkan skor kesiapan kerja (Technical, Soft Skills, Experience, Culture, Leadership) untuk bidang $interest, 
+    pengguna memiliki kekurangan di area: $gaps.
+    
+    Berikan 3 poin tindakan konkret (pendek, maks 10 kata per poin) yang harus mereka pelajari atau lakukan untuk meningkatkan skor tersebut.
+    Tampilkan hanya list item tanpa kata pengantar.
+    ''';
+
+    try {
+      final response = await _model.generateContent([Content.text(prompt)]);
+      final text = response.text ?? '';
+      return text.split('\n')
+          .where((s) => s.trim().isNotEmpty)
+          .map((s) => s.replaceFirst(RegExp(r'^[\-\*\d\.]+\s*'), '').trim())
+          .take(3)
+          .toList();
+    } catch (e) {
+      print("Recommendations Error: $e");
+      return ["Terus berlatih interview", "Perdalam skill utama", "Minta feedback mentor"];
     }
   }
 }
+
+

@@ -7,6 +7,8 @@ class CareerProfile {
   final String experienceLevel;
   final String aiFeedback;
   final int readinessScore;
+  final Map<String, double> analytics;
+  final List<String> recommendations;
   final DateTime updatedAt;
 
   CareerProfile({
@@ -16,6 +18,8 @@ class CareerProfile {
     required this.experienceLevel,
     required this.aiFeedback,
     required this.readinessScore,
+    required this.analytics,
+    required this.recommendations,
     required this.updatedAt,
   });
 
@@ -27,6 +31,8 @@ class CareerProfile {
       'experienceLevel': experienceLevel,
       'aiFeedback': aiFeedback,
       'readinessScore': readinessScore,
+      'analytics': analytics,
+      'recommendations': recommendations,
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }
@@ -39,7 +45,17 @@ class CareerProfile {
       experienceLevel: map['experienceLevel'] ?? '',
       aiFeedback: map['aiFeedback'] ?? '',
       readinessScore: map['readinessScore'] ?? 0,
+      analytics: Map<String, double>.from(map['analytics'] ?? {
+        'Technical': 0.0,
+        'Soft Skills': 0.0,
+        'Experience': 0.0,
+        'Culture': 0.0,
+        'Leadership': 0.0,
+      }),
+      recommendations: List<String>.from(map['recommendations'] ?? []),
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
     );
   }
 }
+
+
