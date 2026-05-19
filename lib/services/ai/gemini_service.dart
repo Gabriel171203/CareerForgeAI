@@ -64,22 +64,36 @@ class GeminiService   {
     ]);
   }
 
-  ChatSession startInterviewChatWithHistory(String role, List<Content> history, {List<String>? skills, String? experience}) {
+  ChatSession startInterviewChatWithHistory(
+    String role, 
+    List<Content> history, {
+    List<String>? skills, 
+    String? experience,
+    bool isMentor = false,
+  }) {
     final profileContext = 'Candidate Profile:\n'
         '- Target Role: $role\n'
         '- Skills: ${skills?.join(', ') ?? 'Not specified'}\n'
         '- Experience: ${experience ?? 'Not specified'}';
 
+    final systemInstruction = isMentor
+        ? 'Your name is Forge, a premier Career Mentor and Coach. \n\n'
+          '$profileContext\n\n'
+          'ROLE: You are here to provide advice, answer questions about career growth, job hunting, salary negotiation, and roadmap building. '
+          'BEHAVIOR: Be supportive, insightful, and detailed. Do NOT just ask questions; provide solutions and guidance. '
+          'Introduce yourself as Forge, your Career Mentor.'
+        : 'Your name is Forge, a premier Technical Interviewer. \n\n'
+          '$profileContext\n\n'
+          'ROLE: You are conducting a professional mock interview. '
+          'BEHAVIOR: Professional, slightly challenging. Ask ONE question at a time. Provide brief feedback after answers. '
+          'Introduce yourself as Forge, your Interviewer.';
+
     return _model.startChat(history: [
-      Content.text(
-        'Your name is Forge, a premier Career Coach. \n\n'
-        '$profileContext\n\n'
-        'Keep acting as Forge. Use the profile to ask relevant questions. '
-        'Continue the interview based on the history provided.'
-      ),
+      Content.text(systemInstruction),
       ...history,
     ]);
   }
+
 
   Future<String> sendInterviewMessage(ChatSession session, String message) async {
     if (_apiKey.isEmpty) {

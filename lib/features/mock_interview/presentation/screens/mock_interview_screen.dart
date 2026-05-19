@@ -36,31 +36,41 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
     if (sessions.isNotEmpty) {
       _loadSession(sessions.first['id']);
     } else {
-      _startNewSession();
+      _startNewSession(mode: 'hr');
     }
   }
 
-  Future<void> _startNewSession() async {
+
+  Future<void> _startNewSession({String mode = 'hr'}) async {
     final userId = ref.read(authStateProvider).value?.uid;
     if (userId == null) return;
 
     final userProfile = ref.read(userProfileProvider).value;
     final role = userProfile?.interest ?? 'Professional';
+    final isMentor = mode == 'mentor';
     
     setState(() => _isLoading = true);
 
     final sessionId = await ref.read(careerRepositoryProvider).createNewSession(
       userId, 
-      "Interview: $role"
+      "${isMentor ? 'Mentoring' : 'Interview'}: $role",
+      mode: mode,
     );
     
     final gemini = ref.read(geminiServiceProvider);
-    _session = gemini.startInterviewChatWithHistory(role, [], 
+    _session = gemini.startInterviewChatWithHistory(
+      role, 
+      [], 
       skills: userProfile?.skills, 
-      experience: userProfile?.experienceLevel
+      experience: userProfile?.experienceLevel,
+      isMentor: isMentor,
     );
 
-    final greeting = await gemini.sendInterviewMessage(_session!, "Introduce yourself and start the interview.");
+    final prompt = isMentor 
+        ? "Introduce yourself as my mentor and ask how you can help me today." 
+        : "Introduce yourself and start the interview.";
+
+    final greeting = await gemini.sendInterviewMessage(_session!, prompt);
     await ref.read(careerRepositoryProvider).saveMessage(userId, sessionId, text: greeting, isUser: false);
 
     if (mounted) {
@@ -72,6 +82,7 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
     }
   }
 
+
   Future<void> _loadSession(String sessionId) async {
     final userId = ref.read(authStateProvider).value?.uid;
     if (userId == null) return;
@@ -79,6 +90,11 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
     final userProfile = ref.read(userProfileProvider).value;
     final role = userProfile?.interest ?? 'Professional';
     
+    // Find mode from current sessions
+    final sessions = ref.read(interviewSessionsProvider).value ?? [];
+    final sessionData = sessions.firstWhere((s) => s['id'] == sessionId, orElse: () => {});
+    final isMentor = sessionData['mode'] == 'mentor';
+
     final gemini = ref.read(geminiServiceProvider);
     
     // Fetch history context
@@ -88,10 +104,14 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
       [TextPart(m['text'] as String)]
     )).toList();
 
-    _session = gemini.startInterviewChatWithHistory(role, geminiHistory, 
+    _session = gemini.startInterviewChatWithHistory(
+      role, 
+      geminiHistory, 
       skills: userProfile?.skills, 
-      experience: userProfile?.experienceLevel
+      experience: userProfile?.experienceLevel,
+      isMentor: isMentor,
     );
+
 
     setState(() {
       _currentSessionId = sessionId;
@@ -174,6 +194,66 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
     }
   }
 
+  void _showModeSelection(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Choose Forge Mode', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            _buildModeTile(
+              context,
+              title: 'Mentor Mode',
+              subtitle: 'Career advice, roadmap, and guidance',
+              icon: LucideIcons.userCircle,
+              color: Colors.blue,
+              onTap: () {
+                Navigator.pop(context);
+                _startNewSession(mode: 'mentor');
+              },
+            ),
+            const SizedBox(height: 16),
+            _buildModeTile(
+              context,
+              title: 'HR Mode',
+              subtitle: 'Professional mock interview practice',
+              icon: LucideIcons.briefcase,
+              color: Colors.amber,
+              onTap: () {
+                Navigator.pop(context);
+                _startNewSession(mode: 'hr');
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModeTile(BuildContext context, {
+    required String title, 
+    required String subtitle, 
+    required IconData icon, 
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+        child: Icon(icon, color: color),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      trailing: const Icon(LucideIcons.chevronRight, size: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.withOpacity(0.2))),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -182,10 +262,18 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
     final messagesAsync = ref.watch(chatMessagesProvider(selectedSessionId));
     final sessionsAsync = ref.watch(interviewSessionsProvider);
 
+    final sessions = sessionsAsync.value ?? [];
+    final currentSession = sessions.firstWhere((s) => s['id'] == _currentSessionId, orElse: () => {});
+    final isMentor = currentSession['mode'] == 'mentor';
+
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Forge AI Advisor', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          isMentor ? 'Forge Career Mentor' : 'Forge AI Interviewer', 
+          style: const TextStyle(fontWeight: FontWeight.bold)
+        ),
+
         actions: [
           TextButton(
             onPressed: _currentSessionId.isEmpty ? null : _finishInterview,
@@ -193,8 +281,9 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
           ),
           IconButton(
             icon: const Icon(LucideIcons.plusCircle, size: 20),
-            onPressed: _startNewSession,
+            onPressed: () => _showModeSelection(context),
           ),
+
           if (_currentSessionId.isNotEmpty)
             IconButton(
               icon: const Icon(LucideIcons.trash2, size: 20, color: Colors.redAccent),
@@ -259,6 +348,7 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
                   final session = sessions[index];
                   final isSelected = session['id'] == _currentSessionId;
                   final isFinished = session['isFinished'] ?? false;
+                  final isMentor = session['mode'] == 'mentor';
                   final date = (session['timestamp'] as Timestamp?)?.toDate();
                   final dateStr = date != null ? DateFormat('MMM d, HH:mm').format(date) : 'Just now';
 
@@ -272,10 +362,13 @@ class _MockInterviewScreenState extends ConsumerState<MockInterviewScreen> {
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       leading: Icon(
-                        isFinished ? LucideIcons.checkCircle2 : LucideIcons.messageCircle,
+                        isFinished 
+                          ? LucideIcons.checkCircle2 
+                          : (isMentor ? LucideIcons.userCircle : LucideIcons.briefcase),
                         color: isFinished ? Colors.green : (isSelected ? theme.colorScheme.primary : Colors.grey),
                         size: 20,
                       ),
+
                       title: Text(
                         session['title'], 
                         style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 14),

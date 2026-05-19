@@ -33,13 +33,15 @@ class CareerRepository {
 
   // --- Session Management ---
 
-  Future<String> createNewSession(String userId, String title) async {
+  Future<String> createNewSession(String userId, String title, {String mode = 'hr'}) async {
     final doc = await _profiles.doc(userId).collection('sessions').add({
       'title': title,
+      'mode': mode,
       'timestamp': FieldValue.serverTimestamp(),
     });
     return doc.id;
   }
+
 
   Future<void> deleteSession(String userId, String sessionId) async {
     // Delete messages first (Firestore requires manual subcollection deletion)
